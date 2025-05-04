@@ -1,44 +1,55 @@
 #!/bin/bash
 
-# Controlla se è stato fornito un parametro per la directory
-if [ -z "$1" ]; then
-    echo "Errore: devi fornire la directory come parametro."
-    echo "Uso: $0 /percorso/della/directory"
-    exit 1
-fi
+# Directory configuration
+source="L:/source"
+dest="L:/dest"
 
-# Imposta la directory dalla quale rinominare i file
-directory="$1"
+# Convert possible Windows paths to Unix format if needed
+source="${source//\\//}"
+dest="${dest//\\//}"
 
-# Controlla se la directory esiste
-if [ ! -d "$directory" ]; then
-    echo "Errore: la directory '$directory' non esiste."
-    exit 1
-fi
+# Create destination directory if it does not exist
+mkdir -p "$dest"
 
-# Inizializza il contatore
+# Initialize file counter
 counter=1
 
-# Cicla su ogni file nella cartella specificata
-for file in "$directory"/*; do
-    # Ignora le cartelle
-    if [ -f "$file" ]; then
-        # Estrai la data di ultima modifica (anno e mese)
-        anno=$(date -r "$file" +"%Y")
-        mese=$(date -r "$file" +"%m")
-
-        # Estrai l'estensione del file
-        estensione="${file##*.}"
-
-        # Crea il nuovo nome del file con il contatore
-        nuovo_nome="${anno} - ${mese} - ${counter}.${estensione}"
-
-        # Rinomina il file
-        mv "$file" "$directory/$nuovo_nome"
-
-        # Incrementa il contatore
-        ((counter++))
+# Function to get modification year and month
+get_mod_date() {
+    local file="$1"
+    # Get file modification date; works for Linux/macOS
+    # Linux:
+    mod_time=$(stat -c "%y" "$file" 2>/dev/null)
+    if [ -z "$mod_time" ]; then
+        # macOS fallback
+        mod_time=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$file")
     fi
+    # Extract year and month
+    year=$(echo "$mod_time" | awk -F'[- ]' '{print $1}')
+    month=$(echo "$mod_time" | awk -F'[- ]' '{print $2}')
+    echo "$year" "$month"
+}
+
+# Recursively find all files in source directory
+find "$source" -type f | while read -r file; do
+    # Get modification year and month
+    read modYear modMonth < <(get_mod_date "$file")
+
+    # Get filename (without extension) and extension
+    base=$(basename "$file")
+    filename="${base%.*}"          # Name without extension
+    extension="${base##*.}"        # File extension
+
+    # Construct new filename
+    newname="${modYear}-${modMonth}-${filename}-${counter}.${extension}"
+
+    # Copy file to destination with new name
+    cp "$file" "$dest/$newname"
+
+    echo "Copied: $file -> $dest/$newname"
+
+    counter=$((counter + 1))
 done
 
-echo "Rinomina completata!"
+echo ""
+echo "Operation completed. Total files processed: $((counter-1))"
