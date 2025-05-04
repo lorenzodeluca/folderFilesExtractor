@@ -1,33 +1,36 @@
-# to run: powershell -ExecutionPolicy Bypass -File "renamer.ps1"
-# Configurazione cartelle
+# To run: powershell -ExecutionPolicy Bypass -File "renamer.ps1"
+
+# Directory configuration
 $source = "L:\source"
 $dest = "L:\dest"
 
-# Crea la cartella di destinazione se non esiste
+# Create destination directory if it does not exist
 if (-not (Test-Path $dest)) {
     New-Item -ItemType Directory -Path $dest | Out-Null
 }
 
-# Inizializza il progressivo
+# Initialize file counter
 $counter = 1
 
-# Recupera tutti i file, ricorsivamente
+# Get all files recursively
 Get-ChildItem -Path $source -Recurse -File | ForEach-Object {
     $file = $_
+    # Get modification year and month
     $modYear = $file.LastWriteTime.ToString("yyyy")
     $modMonth = $file.LastWriteTime.ToString("MM")
+    # Get filename without extension and file extension
     $filename = $file.BaseName
     $extension = $file.Extension.TrimStart('.')
 
-    # Costruisce il nuovo nome file
+    # Construct new filename
     $newname = "{0}-{1}-{2}-{3}.{4}" -f $modYear, $modMonth, $filename, $counter, $extension
 
-    # Copia il file rinominandolo nella nuova cartella
+    # Copy the file with the new name to the destination directory
     Copy-Item -Path $file.FullName -Destination (Join-Path $dest $newname)
 
-    Write-Host "Copiato: $($file.FullName) -> $dest\$newname"
+    Write-Host "Copied: $($file.FullName) -> $dest\$newname"
 
     $counter++
 }
 Write-Host ""
-Write-Host "Operazione completata. Totale file elaborati: $($counter-1)"
+Write-Host "Operation completed. Total files processed: $($counter-1)"
