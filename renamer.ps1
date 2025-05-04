@@ -1,7 +1,7 @@
 # to run: powershell -ExecutionPolicy Bypass -File "renamer.ps1"
 # Configurazione cartelle
-$source = "L:\denis"
-$dest = "L:\denisDefinitivo\tentativo_1"
+$source = "L:\source"
+$dest = "L:\dest"
 
 # Crea la cartella di destinazione se non esiste
 if (-not (Test-Path $dest)) {
